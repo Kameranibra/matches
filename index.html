@@ -10,32 +10,37 @@
   <title>جدول المباريات</title>
   <style>
     body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 20px; }
-    .card { background: #1e1e1e; border-radius: 10px; padding: 15px; margin: 15px auto; max-width: 400px; cursor: pointer; border: 1px solid #333; }
+    .card { background: #1e1e1e; border-radius: 10px; padding: 15px; margin: 15px auto; max-width: 400px; cursor: pointer; border: 1px solid #333; transition: transform 0.2s; }
+    .card:hover { transform: scale(1.02); }
     .teams { display: flex; justify-content: space-between; align-items: center; }
     .team img { width: 45px; height: 45px; object-fit: contain; }
     .time { font-size: 1.1em; color: #f39c12; font-weight: bold; }
     #watch-page { display: none; margin-top: 20px; }
-    iframe { width: 100%; height: 250px; border: none; border-radius: 8px; }
-    button { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
+    iframe { width: 100%; height: 350px; border: none; border-radius: 8px; max-width: 800px; }
+    button { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
+    .ad-container { margin: 15px auto; max-width: 800px; }
   </style>
 </head>
 <body>
 
-  <!-- واجهة جدول المباريات -->
+  <!-- واجهة جدول المباريات (خالية من الإعلانات) -->
   <div id="matches-list">
     <h2>مباريات اليوم</h2>
   </div>
 
-  <!-- صفحة المشاهدة والـ Iframe -->
+  <!-- صفحة المشاهدة والـ Iframe (يتم تفعيل الإعلانات فيها) -->
   <div id="watch-page">
     <button onclick="backToList()">الرجوع للجدول</button>
     
-    <!-- ضع شفرة إعلانات Monetag (Multitag / Popunder) هنا بعد تفعيل الحساب -->
+    <!-- مكان الإعلان المباشر فوق البث (اختياري/إذا كان لديك كود إعلان بنر) -->
+    <div id="ad-slot-top" class="ad-container"></div>
     
     <div id="iframe-container"></div>
   </div>
 
   <script>
+    let adsLoaded = false;
+
     async function loadMatches() {
       try {
         const res = await fetch('matches.json');
@@ -60,10 +65,25 @@
       }
     }
 
+    function loadMonetagAds() {
+      if (adsLoaded) return;
+      adsLoaded = true;
+
+      // تحضير وتحميل إعلان Monetag عند فتح صفحة المشاهدة
+      const adScript = document.createElement('script');
+      adScript.src = 'https://n6wxm.com/vignette.min.js';
+      adScript.dataset.zone = '11617933';
+      document.body.appendChild(adScript);
+    }
+
     function openMatch(url) {
+      // إخفاء الجدول وإظهار صفحة المشاهدة
       document.getElementById('matches-list').style.display = 'none';
       document.getElementById('watch-page').style.display = 'block';
-      document.getElementById('iframe-container').innerHTML = `<iframe src="${url}"></iframe>`;
+      document.getElementById('iframe-container').innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
+      
+      // تشغيل الإعلانات فقط عند الضغط على بطاقة المباراة
+      loadMonetagAds();
     }
 
     function backToList() {
