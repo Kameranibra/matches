@@ -3,87 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- وسم التحقق الخاص بـ Monetag -->
   <meta name="monetag" content="84ed02706926687a647af70ffcbd1248">
-
   <title>جدول المباريات</title>
   <style>
-    body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 20px; }
-    .card { background: #1e1e1e; border-radius: 10px; padding: 15px; margin: 15px auto; max-width: 400px; cursor: pointer; border: 1px solid #333; transition: transform 0.2s; }
-    .card:hover { transform: scale(1.02); }
-    .teams { display: flex; justify-content: space-between; align-items: center; }
-    .team img { width: 45px; height: 45px; object-fit: contain; }
-    .time { font-size: 1.1em; color: #f39c12; font-weight: bold; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 15px; }
+    .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin: 15px auto; max-width: 450px; cursor: pointer; border: 1px solid #333; }
+    .teams { display: flex; justify-content: space-around; align-items: center; }
+    .team img { width: 50px; height: 50px; object-fit: contain; }
+    .match-time { font-size: 1.1em; color: #f39c12; font-weight: bold; margin-bottom: 8px; }
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: bold; color: #fff; background-color: #555; }
+    .status-badge.live { background-color: #e74c3c; animation: pulse-red 1.2s infinite alternate; }
+    @keyframes pulse-red { 0% { background-color: #c0392b; box-shadow: 0 0 5px rgba(231,76,60,0.5); } 100% { background-color: #ff2a2a; box-shadow: 0 0 18px rgba(255,42,42,0.9); } }
     #watch-page { display: none; margin-top: 20px; }
-    iframe { width: 100%; height: 350px; border: none; border-radius: 8px; max-width: 800px; }
-    button { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
-    .ad-container { margin: 15px auto; max-width: 800px; }
+    iframe { width: 100%; height: 380px; border: none; border-radius: 8px; max-width: 800px; }
+    .btn-back { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
-
-  <!-- واجهة جدول المباريات (خالية من الإعلانات) -->
-  <div id="matches-list">
-    <h2>مباريات اليوم</h2>
-  </div>
-
-  <!-- صفحة المشاهدة والـ Iframe (يتم تفعيل الإعلانات فيها) -->
+  <div id="matches-list"><h2>مباريات اليوم</h2></div>
   <div id="watch-page">
-    <button onclick="backToList()">الرجوع للجدول</button>
-    
-    <!-- مكان الإعلان المباشر فوق البث (اختياري/إذا كان لديك كود إعلان بنر) -->
-    <div id="ad-slot-top" class="ad-container"></div>
-    
+    <button class="btn-back" onclick="backToList()">الرجوع للجدول</button>
     <div id="iframe-container"></div>
   </div>
-
   <script>
     let adsLoaded = false;
+    function getMatchStatus(timeStr) {
+      const now = new Date();
+      const [h, m] = timeStr.split(':').map(Number);
+      const matchTime = new Date();
+      matchTime.setHours(h, m, 0, 0);
+      const diff = (now - matchTime) / (1000 * 60);
 
-    async function loadMatches() {
+      if (diff >= 180) return { expired: true };
+      if (diff >= 0) return { text: "جاري الآن", class: "status-badge live", expired: false };
+      if (diff >= -15) return { text: "تبدأ بعد قليل", class: "status-badge", expired: false };
+      return { text: "لم تبدأ بعد", class: "status-badge", expired: false };
+    }
+
+    async function renderMatches() {
       try {
         const res = await fetch('matches.json');
-        const data = await res.json();
+        const matches = await res.json();
         const container = document.getElementById('matches-list');
+        container.innerHTML = '<h2>مباريات اليوم</h2>';
 
-        data.forEach(m => {
+        matches.forEach(m => {
+          const status = getMatchStatus(m.time);
+          if (status.expired) return;
+
           const card = document.createElement('div');
           card.className = 'card';
           card.onclick = () => openMatch(m.iframeUrl);
           card.innerHTML = `
             <div class="teams">
               <div class="team"><img src="${m.logo1}"><p>${m.team1}</p></div>
-              <div class="time">${m.time}</div>
+              <div><div class="match-time">${m.time}</div><span class="${status.class}">${status.text}</span></div>
               <div class="team"><img src="${m.logo2}"><p>${m.team2}</p></div>
-            </div>
-          `;
+            </div>`;
           container.appendChild(card);
         });
-      } catch (e) {
-        console.error('خطأ في جلب ملف matches.json', e);
-      }
-    }
-
-    function loadMonetagAds() {
-      if (adsLoaded) return;
-      adsLoaded = true;
-
-      // تحضير وتحميل إعلان Monetag عند فتح صفحة المشاهدة
-      const adScript = document.createElement('script');
-      adScript.src = 'https://n6wxm.com/vignette.min.js';
-      adScript.dataset.zone = '11617933';
-      document.body.appendChild(adScript);
+      } catch (e) { console.error(e); }
     }
 
     function openMatch(url) {
-      // إخفاء الجدول وإظهار صفحة المشاهدة
       document.getElementById('matches-list').style.display = 'none';
       document.getElementById('watch-page').style.display = 'block';
       document.getElementById('iframe-container').innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
-      
-      // تشغيل الإعلانات فقط عند الضغط على بطاقة المباراة
-      loadMonetagAds();
+      if (!adsLoaded) {
+        adsLoaded = true;
+        const s = document.createElement('script');
+        s.src = 'https://n6wxm.com/vignette.min.js';
+        s.dataset.zone = '11617933';
+        document.body.appendChild(s);
+      }
     }
 
     function backToList() {
@@ -92,7 +85,8 @@
       document.getElementById('iframe-container').innerHTML = '';
     }
 
-    loadMatches();
+    renderMatches();
+    setInterval(renderMatches, 60000);
   </script>
 </body>
 </html>
