@@ -11,16 +11,38 @@
     header { text-align:center; padding:20px; background:#111; margin-bottom:30px; border-radius:15px; border:1px solid #222; }
     .logo { font-size:28px; font-weight:900; color:#ff1f1f; text-shadow:0 0 10px red; }
     .matches-container { max-width:800px; margin:auto; display:flex; flex-direction:column; gap:15px; }
+    
     .match-card { background:#141414; border:1px solid #222; border-radius:15px; padding:15px; display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:#fff; transition:0.3s; }
     .match-card:hover { border-color:#ff1f1f; transform:translateY(-3px); box-shadow:0 0 15px rgba(255,0,0,0.3); }
+    
     .team { display:flex; align-items:center; gap:10px; width:35%; }
     .team.left { justify-content:flex-end; text-align:left; }
     .team.right { justify-content:flex-start; text-align:right; }
     .team img { width:40px; height:40px; object-fit:contain; }
     .team-name { font-weight:bold; font-size:15px; }
-    .info { text-align:center; background:#1e1e1e; padding:8px 15px; border-radius:10px; border:1px solid #333; }
-    .time { color:#ff1f1f; font-weight:900; font-size:17px; }
-    .status { font-size:11px; color:#aaa; margin-top:2px; }
+    
+    .info { text-align:center; background:#1e1e1e; padding:8px 12px; border-radius:10px; border:1px solid #333; min-width:130px; }
+    .time { color:#aaa; font-weight:700; font-size:13px; margin-bottom:2px; }
+    .score { font-size:18px; font-weight:900; color:#fff; margin-bottom:4px; letter-spacing:2px; }
+    
+    /* تصميم حالات المباراة والتوقيت */
+    .status { font-size:11px; font-weight:bold; padding:4px 8px; border-radius:6px; color:#fff; display:inline-block; }
+    
+    /* لم تبدأ بعد: رصاصي */
+    .status-upcoming { background:#4b5563; }
+    
+    /* بعد قليل: أخضر */
+    .status-soon { background:#16a34a; }
+    
+    /* جارية الآن: أحمر مع وميض خفيف */
+    .status-live { background:#dc2626; animation: softGlow 1.5s infinite ease-in-out; }
+    
+    @keyframes softGlow {
+      0% { opacity: 1; box-shadow: 0 0 0px rgba(220, 38, 38, 0); }
+      50% { opacity: 0.85; box-shadow: 0 0 8px rgba(220, 38, 38, 0.8); }
+      100% { opacity: 1; box-shadow: 0 0 0px rgba(220, 38, 38, 0); }
+    }
+
     #no-matches { text-align:center; color:#777; padding:40px; font-size:16px; }
   </style>
 </head>
@@ -35,6 +57,29 @@
   </div>
 
 <script>
+  function getMatchStatusInfo(matchDateStr, matchTimeStr) {
+    const now = new Date();
+    const matchStart = new Date(`${matchDateStr}T${matchTimeStr}:00`);
+    const matchEnd = new Date(matchStart.getTime() + (3 * 60 * 60 * 1000)); // بعد 3 ساعات
+    
+    const diffMinutes = (matchStart - now) / (1000 * 60);
+
+    // إذا انتهت المباراة (مر عليها أكثر من 3 ساعات)
+    if (now >= matchEnd) {
+      return { isExpired: true };
+    }
+
+    if (now < matchStart) {
+      if (diffMinutes <= 20) {
+        return { text: "بعد قليل", class: "status-soon", isExpired: false };
+      } else {
+        return { text: "لم تبدأ بعد", class: "status-upcoming", isExpired: false };
+      }
+    } else {
+      return { text: "جارية الآن", class: "status-live", isExpired: false };
+    }
+  }
+
   async function loadMatches() {
     const list = document.getElementById('matches-list');
     try {
@@ -47,7 +92,15 @@
       }
 
       list.innerHTML = '';
+      let visibleMatches = 0;
+
       matches.forEach(m => {
+        const statusInfo = getMatchStatusInfo(m.date, m.time);
+        
+        // إخفاء المباراة تلقائياً بعد مرور 3 ساعات
+        if (statusInfo.isExpired) return;
+
+        visibleMatches++;
         const card = document.createElement('a');
         card.href = m.postUrl;
         card.className = 'match-card';
@@ -58,7 +111,8 @@
           </div>
           <div class="info">
             <div class="time">${m.time}</div>
-            <div class="status">شاهد البث</div>
+            <div class="score">${m.score1 ?? 0} - ${m.score2 ?? 0}</div>
+            <div class="status ${statusInfo.class}">${statusInfo.text}</div>
           </div>
           <div class="team right">
             <img src="${m.logo2}" alt="${m.team2}">
@@ -67,12 +121,19 @@
         `;
         list.appendChild(card);
       });
+
+      if (visibleMatches === 0) {
+        list.innerHTML = '<div id="no-matches">لا توجد مباريات جارية اليوم</div>';
+      }
+
     } catch (e) {
       list.innerHTML = '<div id="no-matches">خطأ في تحميل جدول المباريات</div>';
     }
   }
 
   loadMatches();
+  // تحديث تلقائي للحالات كل دقيقة دون إعادة تحميل الصفحة
+  setInterval(loadMatches, 60000);
 </script>
 
 </body>
