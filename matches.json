@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "team1": "ريال مدريد",
+    "logo1": "https://via.placeholder.com/50",
+    "team2": "برشلونة",
+    "logo2": "https://via.placeholder.com/50",
+    "time": "22:00",
+    "iframeUrl": "https://example.com/embed"
+  }
+]
