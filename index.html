@@ -3,90 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="monetag" content="84ed02706926687a647af70ffcbd1248">
-  <title>جدول المباريات</title>
+  <title>جدول مباريات اليوم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 15px; }
-    .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin: 15px auto; max-width: 450px; cursor: pointer; border: 1px solid #333; }
-    .teams { display: flex; justify-content: space-around; align-items: center; }
-    .team img { width: 50px; height: 50px; object-fit: contain; }
-    .match-time { font-size: 1.1em; color: #f39c12; font-weight: bold; margin-bottom: 8px; }
-    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: bold; color: #fff; background-color: #555; }
-    .status-badge.live { background-color: #e74c3c; animation: pulse-red 1.2s infinite alternate; }
-    @keyframes pulse-red { 0% { background-color: #c0392b; box-shadow: 0 0 5px rgba(231,76,60,0.5); } 100% { background-color: #ff2a2a; box-shadow: 0 0 18px rgba(255,42,42,0.9); } }
-    #watch-page { display: none; margin-top: 20px; }
-    iframe { width: 100%; height: 380px; border: none; border-radius: 8px; max-width: 800px; }
-    .btn-back { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Cairo',sans-serif; }
+    body { background:#080808; color:#fff; padding:20px 10px; }
+    header { text-align:center; padding:20px; background:#111; margin-bottom:30px; border-radius:15px; border:1px solid #222; }
+    .logo { font-size:28px; font-weight:900; color:#ff1f1f; text-shadow:0 0 10px red; }
+    .matches-container { max-width:800px; margin:auto; display:flex; flex-direction:column; gap:15px; }
+    .match-card { background:#141414; border:1px solid #222; border-radius:15px; padding:15px; display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:#fff; transition:0.3s; }
+    .match-card:hover { border-color:#ff1f1f; transform:translateY(-3px); box-shadow:0 0 15px rgba(255,0,0,0.3); }
+    .team { display:flex; align-items:center; gap:10px; width:35%; }
+    .team.left { justify-content:flex-end; text-align:left; }
+    .team.right { justify-content:flex-start; text-align:right; }
+    .team img { width:40px; height:40px; object-fit:contain; }
+    .team-name { font-weight:bold; font-size:15px; }
+    .info { text-align:center; background:#1e1e1e; padding:8px 15px; border-radius:10px; border:1px solid #333; }
+    .time { color:#ff1f1f; font-weight:900; font-size:17px; }
+    .status { font-size:11px; color:#aaa; margin-top:2px; }
+    #no-matches { text-align:center; color:#777; padding:40px; font-size:16px; }
   </style>
 </head>
 <body>
-  <div id="matches-list"><h2>مباريات اليوم</h2></div>
-  <div id="watch-page">
-    <button class="btn-back" onclick="backToList()">الرجوع للجدول</button>
-    <div id="iframe-container"></div>
+
+  <header>
+    <div class="logo">مباريات اليوم المباشرة</div>
+  </header>
+
+  <div class="matches-container" id="matches-list">
+    <!-- يتم تحميل المباريات تلقائياً -->
   </div>
-  <script>
-    let adsLoaded = false;
-    function getMatchStatus(timeStr) {
-      const now = new Date();
-      const [h, m] = timeStr.split(':').map(Number);
-      const matchTime = new Date();
-      matchTime.setHours(h, m, 0, 0);
-      const diff = (now - matchTime) / (1000 * 60);
 
-      if (diff >= 180) return { expired: true };
-      if (diff >= 0) return { text: "جاري الآن", class: "status-badge live", expired: false };
-      if (diff >= -15) return { text: "تبدأ بعد قليل", class: "status-badge", expired: false };
-      return { text: "لم تبدأ بعد", class: "status-badge", expired: false };
-    }
+<script>
+  async function loadMatches() {
+    const list = document.getElementById('matches-list');
+    try {
+      const res = await fetch('matches.json?t=' + Date.now());
+      const matches = await res.json();
 
-    async function renderMatches() {
-      try {
-        const res = await fetch('matches.json');
-        const matches = await res.json();
-        const container = document.getElementById('matches-list');
-        container.innerHTML = '<h2>مباريات اليوم</h2>';
-
-        matches.forEach(m => {
-          const status = getMatchStatus(m.time);
-          if (status.expired) return;
-
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.onclick = () => openMatch(m.iframeUrl);
-          card.innerHTML = `
-            <div class="teams">
-              <div class="team"><img src="${m.logo1}"><p>${m.team1}</p></div>
-              <div><div class="match-time">${m.time}</div><span class="${status.class}">${status.text}</span></div>
-              <div class="team"><img src="${m.logo2}"><p>${m.team2}</p></div>
-            </div>`;
-          container.appendChild(card);
-        });
-      } catch (e) { console.error(e); }
-    }
-
-    function openMatch(url) {
-      document.getElementById('matches-list').style.display = 'none';
-      document.getElementById('watch-page').style.display = 'block';
-      document.getElementById('iframe-container').innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
-      if (!adsLoaded) {
-        adsLoaded = true;
-        const s = document.createElement('script');
-        s.src = 'https://n6wxm.com/vignette.min.js';
-        s.dataset.zone = '11617933';
-        document.body.appendChild(s);
+      if (!matches || matches.length === 0) {
+        list.innerHTML = '<div id="no-matches">لا توجد مباريات مضافة اليوم</div>';
+        return;
       }
-    }
 
-    function backToList() {
-      document.getElementById('watch-page').style.display = 'none';
-      document.getElementById('matches-list').style.display = 'block';
-      document.getElementById('iframe-container').innerHTML = '';
+      list.innerHTML = '';
+      matches.forEach(m => {
+        const card = document.createElement('a');
+        card.href = m.postUrl;
+        card.className = 'match-card';
+        card.innerHTML = `
+          <div class="team left">
+            <span class="team-name">${m.team1}</span>
+            <img src="${m.logo1}" alt="${m.team1}">
+          </div>
+          <div class="info">
+            <div class="time">${m.time}</div>
+            <div class="status">شاهد البث</div>
+          </div>
+          <div class="team right">
+            <img src="${m.logo2}" alt="${m.team2}">
+            <span class="team-name">${m.team2}</span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    } catch (e) {
+      list.innerHTML = '<div id="no-matches">خطأ في تحميل جدول المباريات</div>';
     }
+  }
 
-    renderMatches();
-    setInterval(renderMatches, 60000);
-  </script>
+  loadMatches();
+</script>
+
 </body>
 </html>
