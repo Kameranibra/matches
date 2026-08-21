@@ -3,13 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>جدول مباريات اليوم</title>
+  
+  <!-- عنوان الموقع في جوجل وتبويب المتصفح -->
+  <title>يلا شووت - مباريات اليوم</title>
+
+  <!-- وصف الموقع لمحركات البحث -->
+  <meta name="description" content="يلا شووت - تابع جدول مباريات اليوم المباشرة وتفاصيل نتائج المباريات لحظة بلحظة.">
+  <meta name="keywords" content="يلا شووت, مباريات اليوم, بث مباشر, جدول المباريات">
+  <meta name="author" content="يلا شووت">
+
+  <!-- تعريف اسم الموقع واللوجو لمحركات البحث (Open Graph) -->
+  <meta property="og:site_name" content="يلا شووت">
+  <meta property="og:title" content="يلا شووت - مباريات اليوم">
+  <meta property="og:description" content="شاهد مباريات اليوم المباشرة ونتائج الفِرق أولاً بأول على يلا شووت.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yalla-shoo1t.live/">
+  <meta property="og:image" content="https://yalla-shoo1t.live/favicon.png">
+
+  <!-- روابط الأيقونة (Favicon) التي تظهر في جوجل والمتصفح -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+
+  <!-- هيكل بيانات جوجل لمعرفة اسم الموقع الرسمي (Schema Structured Data) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "يلا شووت",
+    "alternateName": ["Yalla Shoot", "يلا شووت مباريات اليوم"],
+    "url": "https://yalla-shoo1t.live/"
+  }
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Cairo',sans-serif; }
     body { background:#080808; color:#fff; padding:20px 10px; }
-    header { text-align:center; padding:20px; background:#111; margin-bottom:30px; border-radius:15px; border:1px solid #222; }
-    .logo { font-size:28px; font-weight:900; color:#ff1f1f; text-shadow:0 0 10px red; }
+    
+    header { 
+      text-align:center; 
+      padding:20px; 
+      background:#111; 
+      margin-bottom:30px; 
+      border-radius:15px; 
+      border:1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    
+    header img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    
+    .logo { font-size:26px; font-weight:900; color:#ff1f1f; text-shadow:0 0 10px red; }
+    
     .matches-container { max-width:800px; margin:auto; display:flex; flex-direction:column; gap:15px; }
     
     .match-card { background:#141414; border:1px solid #222; border-radius:15px; padding:15px; display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:#fff; transition:0.3s; }
@@ -25,16 +79,9 @@
     .time { color:#aaa; font-weight:700; font-size:13px; margin-bottom:2px; }
     .score { font-size:18px; font-weight:900; color:#fff; margin-bottom:4px; letter-spacing:2px; }
     
-    /* تصميم حالات المباراة والتوقيت */
     .status { font-size:11px; font-weight:bold; padding:4px 8px; border-radius:6px; color:#fff; display:inline-block; }
-    
-    /* لم تبدأ بعد: رصاصي */
     .status-upcoming { background:#4b5563; }
-    
-    /* بعد قليل: أخضر */
     .status-soon { background:#16a34a; }
-    
-    /* جارية الآن: أحمر مع وميض خفيف */
     .status-live { background:#dc2626; animation: softGlow 1.5s infinite ease-in-out; }
     
     @keyframes softGlow {
@@ -49,7 +96,8 @@
 <body>
 
   <header>
-    <div class="logo">مباريات اليوم المباشرة</div>
+    <img src="favicon.png" alt="يلا شووت" onerror="this.style.display='none'">
+    <div class="logo">يلا شووت - مباريات اليوم</div>
   </header>
 
   <div class="matches-container" id="matches-list">
@@ -60,11 +108,9 @@
   function getMatchStatusInfo(matchDateStr, matchTimeStr) {
     const now = new Date();
     const matchStart = new Date(`${matchDateStr}T${matchTimeStr}:00`);
-    const matchEnd = new Date(matchStart.getTime() + (3 * 60 * 60 * 1000)); // بعد 3 ساعات
-    
+    const matchEnd = new Date(matchStart.getTime() + (3 * 60 * 60 * 1000));
     const diffMinutes = (matchStart - now) / (1000 * 60);
 
-    // إذا انتهت المباراة (مر عليها أكثر من 3 ساعات)
     if (now >= matchEnd) {
       return { isExpired: true };
     }
@@ -96,8 +142,6 @@
 
       matches.forEach(m => {
         const statusInfo = getMatchStatusInfo(m.date, m.time);
-        
-        // إخفاء المباراة تلقائياً بعد مرور 3 ساعات
         if (statusInfo.isExpired) return;
 
         visibleMatches++;
@@ -132,7 +176,6 @@
   }
 
   loadMatches();
-  // تحديث تلقائي للحالات كل دقيقة دون إعادة تحميل الصفحة
   setInterval(loadMatches, 60000);
 </script>
 
